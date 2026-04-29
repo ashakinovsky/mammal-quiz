@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mammal Identification Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#1D9E75;--green-light:#E1F5EE;--green-dark:#0F6E56;
+  --amber:#BA7517;--amber-light:#FAEEDA;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --bg:#ffffff;--bg2:#f6f5f0;--bg3:#efede6;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);
+  --radius:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1c1c1a;--bg2:#242422;--bg3:#2c2c2a;
+    --text:#f0ede6;--text2:#b4b2a9;--text3:#888780;
+    --border:rgba(255,255,255,0.12);--border2:rgba(255,255,255,0.22);
+    --green:#1D9E75;--green-light:#04342C;--green-dark:#5DCAA5;
+    --amber-light:#412402;--red-light:#501313;
+  }
+}
+body{font-family:'Source Sans 3',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;padding:24px 16px 48px}
+#app{max-width:660px;margin:0 auto;background:var(--bg);border-radius:var(--radius-lg);border:0.5px solid var(--border);padding:24px}
+.header{text-align:center;padding-bottom:16px;border-bottom:0.5px solid var(--border);margin-bottom:16px}
+.header h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:600;color:var(--text);letter-spacing:-0.3px}
+.header p{font-size:14px;color:var(--text2);margin-top:4px}
+.scorebar{display:flex;gap:8px;justify-content:center;margin-bottom:16px;flex-wrap:wrap}
+.score-pill{background:var(--bg2);border:0.5px solid var(--border);border-radius:20px;padding:5px 14px;font-size:13px;color:var(--text2)}
+.score-pill span{font-weight:600;color:var(--text)}
+.progress-bar{height:3px;background:var(--bg2);border-radius:2px;margin-bottom:18px;overflow:hidden}
+.progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width 0.4s ease}
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.filter-btn{font-size:11px;padding:4px 10px;border-radius:12px;border:0.5px solid var(--border2);background:var(--bg);color:var(--text2);cursor:pointer;font-family:'Source Sans 3',sans-serif;transition:all 0.15s}
+.filter-btn.active{background:var(--green);border-color:var(--green-dark);color:#fff;font-weight:600}
+.img-wrap{width:100%;aspect-ratio:16/9;background:var(--bg2);border-radius:var(--radius-lg);overflow:hidden;border:0.5px solid var(--border);margin-bottom:16px;position:relative}
+.img-wrap img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity 0.3s}
+.img-wrap img.loading{opacity:0}
+.no-img{display:flex;align-items:center;justify-content:center;height:100%;font-size:14px;color:var(--text3);font-style:italic}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+@media(max-width:480px){.fields{grid-template-columns:1fr}}
+.field-group{display:flex;flex-direction:column;gap:4px}
+.field-group label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+.field-group input{border:0.5px solid var(--border2);border-radius:var(--radius);padding:8px 10px;font-size:14px;font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--text);transition:border-color 0.2s,background 0.2s;outline:none;width:100%}
+.field-group input:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,0.15)}
+.field-group input.correct{background:var(--green-light);border-color:var(--green);color:var(--green-dark)}
+.field-group input.incorrect{background:var(--red-light);border-color:var(--red);color:var(--red)}
+.actions{display:flex;gap:8px;margin-bottom:12px}
+.btn{flex:1;padding:9px 12px;border-radius:var(--radius);font-size:14px;font-family:'Source Sans 3',sans-serif;font-weight:600;cursor:pointer;border:0.5px solid var(--border2);background:var(--bg);color:var(--text);transition:background 0.15s,transform 0.1s}
+.btn:hover{background:var(--bg2)}
+.btn:active{transform:scale(0.98)}
+.btn:disabled{opacity:0.45;cursor:default}
+.btn-primary{background:var(--green);border-color:var(--green-dark);color:#fff}
+.btn-primary:hover{background:var(--green-dark)}
+.feedback{border-radius:var(--radius);padding:10px 14px;font-size:13px;line-height:1.6;margin-bottom:10px;border:0.5px solid transparent}
+.feedback.correct-all{background:var(--green-light);border-color:#5DCAA5;color:var(--green-dark)}
+.feedback.partial{background:var(--amber-light);border-color:#EF9F27;color:var(--amber)}
+.feedback.wrong{background:var(--red-light);border-color:#F09595;color:var(--red)}
+.feedback-row{display:flex;align-items:center;gap:6px;padding:2px 0}
+.feedback-row .icon{font-size:13px;width:16px;text-align:center}
+.feedback-row .answer{font-weight:600}
+.mode-info{text-align:center;font-size:12px;color:var(--text3);padding-top:8px;border-top:0.5px solid var(--border);margin-top:4px}
+.mode-info strong{color:var(--text2)}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg);border-radius:var(--radius-lg);border:0.5px solid var(--border);padding:28px 24px;max-width:380px;width:90%;text-align:center}
+.modal h2{font-family:'Playfair Display',serif;font-size:22px;margin-bottom:8px;color:var(--text)}
+.modal .big-score{font-size:52px;font-weight:600;color:var(--green);margin:12px 0}
+.modal p{font-size:14px;color:var(--text2);margin-bottom:20px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <h1>Mammal Identification Quiz</h1>
+    <p>Enter the common name, scientific name, family, and order for each specimen</p>
+  </div>
+  <div class="scorebar">
+    <div class="score-pill">Score <span id="scoreDisplay">0</span>/<span id="totalDisplay">0</span></div>
+    <div class="score-pill">Question <span id="qNum">1</span>/<span id="qTotal">—</span></div>
+    <div class="score-pill">Streak <span id="streak">0</span></div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div class="filter-bar" id="filterBar"></div>
+  <div class="img-wrap">
+    <img id="animalImg" src="" alt="Mammal to identify">
+    <div class="no-img" id="noImg" style="display:none">No image available</div>
+  </div>
+  <div class="fields">
+    <div class="field-group"><label>Common name</label><input id="fCommon" placeholder="e.g. Virginia Opossum" autocomplete="off" spellcheck="false"></div>
+    <div class="field-group"><label>Scientific name</label><input id="fScientific" placeholder="e.g. Didelphis virginiana" autocomplete="off" spellcheck="false"></div>
+    <div class="field-group"><label>Family</label><input id="fFamily" placeholder="e.g. Didelphidae" autocomplete="off" spellcheck="false"></div>
+    <div class="field-group"><label>Order</label><input id="fOrder" placeholder="e.g. Didelphimorphia" autocomplete="off" spellcheck="false"></div>
+  </div>
+  <div class="actions">
+    <button class="btn" id="hintBtn" onclick="showHint()">Hint</button>
+    <button class="btn btn-primary" id="submitBtn" onclick="checkAnswer()">Submit</button>
+    <button class="btn" id="skipBtn" onclick="nextAnimal()">Skip →</button>
+  </div>
+  <div id="feedbackBox"></div>
+  <div class="mode-info">Press <strong>Enter</strong> to submit &middot; <strong>Tab</strong> to move between fields</div>
+</div>
+
+<div class="modal-bg" id="endModal">
+  <div class="modal">
+    <h2>Quiz complete!</h2>
+    <div class="big-score" id="finalScore">—</div>
+    <p id="finalMsg"></p>
+    <button class="btn btn-primary" style="width:100%" onclick="restartQuiz()">Start over</button>
+  </div>
+</div>
+
+<script>
+const MAMMALS=[
+  {common:"Virginia Opossum",scientific:"Didelphis virginiana",family:"Didelphidae",order:"Didelphimorphia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Opossum_2.jpg/320px-Opossum_2.jpg"},
+  {common:"Southeastern Shrew",scientific:"Sorex longirostris",family:"Soricidae",order:"Soricomorpha",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Sorex_longirostris.jpg/320px-Sorex_longirostris.jpg"},
+  {common:"Northern Short-tailed Shrew",scientific:"Blarina brevicauda",family:"Soricidae",order:"Soricomorpha",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Blarina_brevicauda.jpg/320px-Blarina_brevicauda.jpg"},
+  {common:"Least Shrew",scientific:"Cryptotis parva",family:"Soricidae",order:"Soricomorpha",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Cryptotis_parva.jpg/320px-Cryptotis_parva.jpg"},
+  {common:"Eastern Mole",scientific:"Scalopus aquaticus",family:"Talpidae",order:"Soricomorpha",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Scalopus_aquaticus.jpg/320px-Scalopus_aquaticus.jpg"},
+  {common:"Eastern Red Bat",scientific:"Lasiurus borealis",family:"Vespertilionidae",order:"Chiroptera",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Lasiurus_borealis_28.jpg/320px-Lasiurus_borealis_28.jpg"},
+  {common:"Big Brown Bat",scientific:"Eptesicus fuscus",family:"Vespertilionidae",order:"Chiroptera",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Eptesicus_fuscus_USFWS.jpg/320px-Eptesicus_fuscus_USFWS.jpg"},
+  {common:"Southeastern Myotis",scientific:"Myotis austroriparius",family:"Vespertilionidae",order:"Chiroptera",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Myotis_austroriparius.jpg/320px-Myotis_austroriparius.jpg"},
+  {common:"Brazilian Free-tailed Bat",scientific:"Tadarida brasiliensis",family:"Molossidae",order:"Chiroptera",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Tadarida_brasiliensis.jpg/320px-Tadarida_brasiliensis.jpg"},
+  {common:"Eastern Chipmunk",scientific:"Tamias striatus",family:"Sciuridae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Eastern_Chipmunk.jpg/320px-Eastern_Chipmunk.jpg"},
+  {common:"Woodchuck",scientific:"Marmota monax",family:"Sciuridae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Marmota_monax_UL_04.jpg/320px-Marmota_monax_UL_04.jpg"},
+  {common:"Southern Flying Squirrel",scientific:"Glaucomys volans",family:"Sciuridae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Glaucomys_volans_Virginia.jpg/320px-Glaucomys_volans_Virginia.jpg"},
+  {common:"Eastern Fox Squirrel",scientific:"Sciurus niger",family:"Sciuridae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Sciurus_niger.jpg/320px-Sciurus_niger.jpg"},
+  {common:"Eastern Gray Squirrel",scientific:"Sciurus carolinensis",family:"Sciuridae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Eastern_Grey_Squirrel.jpg/320px-Eastern_Grey_Squirrel.jpg"},
+  {common:"American Beaver",scientific:"Castor canadensis",family:"Castoridae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/American_Beaver.jpg/320px-American_Beaver.jpg"},
+  {common:"Meadow Jumping Mouse",scientific:"Zapus hudsonius",family:"Dipodidae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Zapus_hudsonius.jpg/320px-Zapus_hudsonius.jpg"},
+  {common:"Cotton Mouse",scientific:"Peromyscus gossypinus",family:"Cricetidae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Peromyscus_gossypinus.jpg/320px-Peromyscus_gossypinus.jpg"},
+  {common:"White-footed Mouse",scientific:"Peromyscus leucopus",family:"Cricetidae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Peromyscus_leucopus.jpg/320px-Peromyscus_leucopus.jpg"},
+  {common:"Deer Mouse",scientific:"Peromyscus maniculatus",family:"Cricetidae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Peromyscus_maniculatus_perditus.jpg/320px-Peromyscus_maniculatus_perditus.jpg"},
+  {common:"Hispid Cotton Rat",scientific:"Sigmodon hispidus",family:"Cricetidae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Sigmodon_hispidus.jpg/320px-Sigmodon_hispidus.jpg"},
+  {common:"Southern Red-backed Vole",scientific:"Clethrionomys gapperi",family:"Cricetidae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Clethrionomys_gapperi.jpg/320px-Clethrionomys_gapperi.jpg"},
+  {common:"House Mouse",scientific:"Mus musculus",family:"Muridae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Mus_musculus_domesticus_white_background.jpg/320px-Mus_musculus_domesticus_white_background.jpg"},
+  {common:"Black Rat",scientific:"Rattus rattus",family:"Muridae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Rattus_rattus_1.jpg/320px-Rattus_rattus_1.jpg"},
+  {common:"Norway Rat",scientific:"Rattus norvegicus",family:"Muridae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Norway_rat_eating.jpg/320px-Norway_rat_eating.jpg"},
+  {common:"Nutria",scientific:"Myocastor coypus",family:"Myocastoridae",order:"Rodentia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Myocastor_coypus_Ragondin.jpg/320px-Myocastor_coypus_Ragondin.jpg"},
+  {common:"Snowshoe Hare",scientific:"Lepus americanus",family:"Leporidae",order:"Lagomorpha",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Lepus_americanus_5459_cropped.jpg/320px-Lepus_americanus_5459_cropped.jpg"},
+  {common:"Eastern Cottontail",scientific:"Sylvilagus floridanus",family:"Leporidae",order:"Lagomorpha",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Sylvilagus_floridanus.jpg/320px-Sylvilagus_floridanus.jpg"},
+  {common:"Marsh Rabbit",scientific:"Sylvilagus palustris",family:"Leporidae",order:"Lagomorpha",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Sylvilagus_palustris.jpg/320px-Sylvilagus_palustris.jpg"},
+  {common:"Northern Raccoon",scientific:"Procyon lotor",family:"Procyonidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Common_Raccoon_with_kits.jpg/320px-Common_Raccoon_with_kits.jpg"},
+  {common:"Coyote",scientific:"Canis latrans",family:"Canidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Coyote-Yosemite.jpg/320px-Coyote-Yosemite.jpg"},
+  {common:"Gray Wolf",scientific:"Canis lupus",family:"Canidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/GrayWolf_standing.jpg/320px-GrayWolf_standing.jpg"},
+  {common:"Red Wolf",scientific:"Canis rufus",family:"Canidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Canis_rufus.jpg/320px-Canis_rufus.jpg"},
+  {common:"Red Fox",scientific:"Vulpes vulpes",family:"Canidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Fox_-_British_Wildlife_Centre_%287582909488%29.jpg/320px-Fox_-_British_Wildlife_Centre_%287582909488%29.jpg"},
+  {common:"Gray Fox",scientific:"Urocyon cinereoargenteus",family:"Canidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Urocyon_cinereoargenteus_on_Seedskadee_NWR_%28cropped%29.jpg/320px-Urocyon_cinereoargenteus_on_Seedskadee_NWR_%28cropped%29.jpg"},
+  {common:"American Black Bear",scientific:"Ursus americanus",family:"Ursidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/01_Schwarzbär.jpg/320px-01_Schwarzbär.jpg"},
+  {common:"Brown Bear",scientific:"Ursus arctos",family:"Ursidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Kamchatka_Brown_Bear_near_Dvuhyurtochnoe_on_2015-07-23.jpg/320px-Kamchatka_Brown_Bear_near_Dvuhyurtochnoe_on_2015-07-23.jpg"},
+  {common:"Polar Bear",scientific:"Ursus maritimus",family:"Ursidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Polar_Bear_-_Alaska_%28cropped%29.jpg/320px-Polar_Bear_-_Alaska_%28cropped%29.jpg"},
+  {common:"Fisher",scientific:"Pekania pennanti",family:"Mustelidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Fisher_%28Martes_pennanti%29_in_a_tree.jpg/320px-Fisher_%28Martes_pennanti%29_in_a_tree.jpg"},
+  {common:"Long-tailed Weasel",scientific:"Mustela frenata",family:"Mustelidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Mustela_frenata_cropped.jpg/320px-Mustela_frenata_cropped.jpg"},
+  {common:"American Mink",scientific:"Neovison vison",family:"Mustelidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Mink_in_lake_district.jpg/320px-Mink_in_lake_district.jpg"},
+  {common:"Northern River Otter",scientific:"Lontra canadensis",family:"Mustelidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Lontra_canadensis_-Buffalo_Zoo-8a.jpg/320px-Lontra_canadensis_-Buffalo_Zoo-8a.jpg"},
+  {common:"Eastern Spotted Skunk",scientific:"Spilogale putorius",family:"Mephitidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Spilogale_putorius.jpg/320px-Spilogale_putorius.jpg"},
+  {common:"Striped Skunk",scientific:"Mephitis mephitis",family:"Mephitidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Mephitis_mephitis_4.jpg/320px-Mephitis_mephitis_4.jpg"},
+  {common:"Cougar",scientific:"Puma concolor",family:"Felidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Puma_concolor_cougar.jpg/320px-Puma_concolor_cougar.jpg"},
+  {common:"Bobcat",scientific:"Lynx rufus",family:"Felidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Bobcat2.jpg/320px-Bobcat2.jpg"},
+  {common:"Canada Lynx",scientific:"Lynx canadensis",family:"Felidae",order:"Carnivora",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Lynx_canadensis.jpg/320px-Lynx_canadensis.jpg"},
+  {common:"Wapiti",scientific:"Cervus canadensis",family:"Cervidae",order:"Artiodactyla",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Cervus_canadensis_male.jpg/320px-Cervus_canadensis_male.jpg"},
+  {common:"White-tailed Deer",scientific:"Odocoileus virginianus",family:"Cervidae",order:"Artiodactyla",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Virginia_deer.jpg/320px-Virginia_deer.jpg"},
+  {common:"Mule Deer",scientific:"Odocoileus hemionus",family:"Cervidae",order:"Artiodactyla",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Mule_Deer_on_Ridge.jpg/320px-Mule_Deer_on_Ridge.jpg"},
+  {common:"Moose",scientific:"Alces alces",family:"Cervidae",order:"Artiodactyla",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Moose_superior.jpg/320px-Moose_superior.jpg"},
+  {common:"Caribou",scientific:"Rangifer tarandus",family:"Cervidae",order:"Artiodactyla",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Male_reindeer_in_Trom%C3%B8.jpg/320px-Male_reindeer_in_Trom%C3%B8.jpg"},
+  {common:"Pronghorn",scientific:"Antilocapra americana",family:"Antilocapridae",order:"Artiodactyla",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Antilocapra_americana.jpg/320px-Antilocapra_americana.jpg"},
+  {common:"American Bison",scientific:"Bison bison",family:"Bovidae",order:"Artiodactyla",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/American_bison_k5680-1.jpg/320px-American_bison_k5680-1.jpg"},
+  {common:"Mountain Goat",scientific:"Oreamnos americanus",family:"Bovidae",order:"Artiodactyla",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Oreamnos_americanus_1.jpg/320px-Oreamnos_americanus_1.jpg"},
+  {common:"Mountain Sheep",scientific:"Ovis canadensis",family:"Bovidae",order:"Artiodactyla",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/Bighorn_sheep_at_Badlands.jpg/320px-Bighorn_sheep_at_Badlands.jpg"},
+  {common:"Feral Pig",scientific:"Sus scrofa",family:"Suidae",order:"Artiodactyla",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Hog_female.jpg/320px-Hog_female.jpg"},
+  {common:"Bottlenose Dolphin",scientific:"Tursiops truncatus",family:"Delphinidae",order:"Cetacea",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Tursiops_truncatus_01.jpg/320px-Tursiops_truncatus_01.jpg"},
+  {common:"West Indian Manatee",scientific:"Trichechus manatus",family:"Trichechidae",order:"Sirenia",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Manatee_with_calf.jpg/320px-Manatee_with_calf.jpg"}
+];
+
+const ORDERS=[...new Set(MAMMALS.map(m=>m.order))];
+let filtered=[...MAMMALS],queue=[],current=0,score=0,total=0,streak=0,answered=false,hintStage=0;
+let activeOrders=new Set(ORDERS);
+
+function buildFilterBar(){
+  const bar=document.getElementById('filterBar');
+  bar.innerHTML='';
+  const allBtn=document.createElement('button');
+  allBtn.className='filter-btn'+(activeOrders.size===ORDERS.length?' active':'');
+  allBtn.textContent='All orders';
+  allBtn.onclick=()=>{activeOrders=new Set(ORDERS);rebuildQueue();renderFilters();};
+  bar.appendChild(allBtn);
+  ORDERS.forEach(o=>{
+    const b=document.createElement('button');
+    b.className='filter-btn'+(activeOrders.has(o)?' active':'');
+    b.textContent=o;
+    b.onclick=()=>{
+      if(activeOrders.has(o)&&activeOrders.size>1)activeOrders.delete(o);
+      else activeOrders.add(o);
+      rebuildQueue();renderFilters();
+    };
+    bar.appendChild(b);
+  });
+}
+function renderFilters(){
+  const btns=document.querySelectorAll('.filter-btn');
+  btns[0].className='filter-btn'+(activeOrders.size===ORDERS.length?' active':'');
+  ORDERS.forEach((o,i)=>{btns[i+1].className='filter-btn'+(activeOrders.has(o)?' active':'');});
+}
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+function rebuildQueue(){
+  filtered=MAMMALS.filter(m=>activeOrders.has(m.order));
+  queue=shuffle([...filtered]);
+  current=0;score=0;total=0;streak=0;hintStage=0;
+  updateScorebar();loadAnimal();
+}
+function loadAnimal(){
+  if(current>=queue.length){showEndModal();return;}
+  answered=false;hintStage=0;
+  const m=queue[current];
+  const img=document.getElementById('animalImg');
+  const noImg=document.getElementById('noImg');
+  img.classList.add('loading');
+  img.style.display='block';
+  noImg.style.display='none';
+  img.onerror=()=>{img.style.display='none';noImg.style.display='flex';};
+  img.onload=()=>img.classList.remove('loading');
+  img.src=m.img;
+  img.alt='Identify this mammal: '+m.common;
+  ['fCommon','fScientific','fFamily','fOrder'].forEach(id=>{
+    const el=document.getElementById(id);el.value='';el.className='';el.disabled=false;
+  });
+  document.getElementById('feedbackBox').innerHTML='';
+  document.getElementById('submitBtn').disabled=false;
+  document.getElementById('hintBtn').disabled=false;
+  updateScorebar();
+  document.getElementById('qNum').textContent=current+1;
+  document.getElementById('qTotal').textContent=queue.length;
+  document.getElementById('progressFill').style.width=((current/queue.length)*100)+'%';
+  document.getElementById('fCommon').focus();
+}
+function normalize(s){return s.trim().toLowerCase().replace(/\s+/g,' ').replace(/[()]/g,'').replace(/\bor\b.*$/,'').trim();}
+function checkAnswer(){
+  if(answered)return;
+  answered=true;
+  const m=queue[current];
+  const fields=[
+    {id:'fCommon',key:'common',label:'Common name'},
+    {id:'fScientific',key:'scientific',label:'Scientific name'},
+    {id:'fFamily',key:'family',label:'Family'},
+    {id:'fOrder',key:'order',label:'Order'}
+  ];
+  const alts={common:['mountain lion','elk','bighorn sheep','wapiti or elk','cougar or mountain lion','mountain or bighorn sheep']};
+  let correct=0,html='';
+  fields.forEach(f=>{
+    const el=document.getElementById(f.id);
+    const val=normalize(el.value);
+    const ans=normalize(m[f.key]);
+    const altOk=f.key==='common'&&(alts.common.some(a=>val===normalize(a)));
+    const ok=val===ans||altOk;
+    el.className=ok?'correct':'incorrect';
+    el.disabled=true;
+    if(!ok) html+=`<div class="feedback-row"><span class="icon">✗</span>${f.label}: <span class="answer">${m[f.key]}</span></div>`;
+    else correct++;
+  });
+  total++;
+  if(correct===4){score++;streak++;}else{streak=0;}
+  updateScorebar();
+  const box=document.getElementById('feedbackBox');
+  if(correct===4){
+    box.innerHTML='<div class="feedback correct-all"><div class="feedback-row"><span class="icon">✓</span>All correct! Next question in a moment…</div></div>';
+    setTimeout(nextAnimal,1800);
+  } else {
+    const cls=correct>=2?'partial':'wrong';
+    box.innerHTML=`<div class="feedback ${cls}">${html}</div>`;
+    document.getElementById('submitBtn').disabled=true;
+  }
+}
+function nextAnimal(){current++;loadAnimal();}
+function showHint(){
+  const m=queue[current];
+  const hints=[
+    'Order: '+m.order,
+    'Family: '+m.family,
+    'Genus: '+m.scientific.split(' ')[0],
+    'Common name starts with: "'+m.common[0].toUpperCase()+'…"'
+  ];
+  hintStage=(hintStage)%hints.length;
+  document.getElementById('feedbackBox').innerHTML=`<div class="feedback partial"><div class="feedback-row"><span class="icon">i</span>Hint ${hintStage+1}/4: ${hints[hintStage]}</div></div>`;
+  hintStage++;
+}
+function updateScorebar(){
+  document.getElementById('scoreDisplay').textContent=score;
+  document.getElementById('totalDisplay').textContent=total;
+  document.getElementById('streak').textContent=streak;
+}
+function showEndModal(){
+  const pct=total>0?Math.round((score/total)*100):0;
+  document.getElementById('finalScore').textContent=score+'/'+total+' ('+pct+'%)';
+  document.getElementById('finalMsg').textContent=
+    pct>=90?'Outstanding! You really know your mammals.':
+    pct>=70?'Great work — solid mammal knowledge!':
+    pct>=50?'Good effort. Keep studying and try again!':
+    'Keep at it — review your list and try again!';
+  document.getElementById('endModal').classList.add('open');
+}
+function restartQuiz(){
+  document.getElementById('endModal').classList.remove('open');
+  rebuildQueue();
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.activeElement.tagName==='INPUT'&&!answered)checkAnswer();
+});
+buildFilterBar();
+rebuildQueue();
+</script>
+</body>
+</html>
