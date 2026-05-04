@@ -73,6 +73,24 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--bg3);color:var(--te
 .modal h2{font-family:'Playfair Display',serif;font-size:22px;margin-bottom:8px;color:var(--text)}
 .modal .big-score{font-size:52px;font-weight:600;color:var(--green);margin:12px 0}
 .modal p{font-size:14px;color:var(--text2);margin-bottom:20px}
+
+  .img-toggle-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  z-index: 10;
+}
+.img-toggle-btn:hover { background: rgba(0, 0, 0, 0.8); }
+
 </style>
 </head>
 <body>
@@ -90,6 +108,11 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--bg3);color:var(--te
   <div class="filter-bar" id="filterBar"></div>
   <div class="img-wrap">
     <img id="animalImg" src="" alt="Mammal to identify">
+    <div class="img-wrap">
+  <img id="animalImg" src="" alt="Mammal to identify">
+  <div class="no-img" id="noImg" style="display:none">No image available</div>
+  <button id="imgToggle" class="img-toggle-btn" style="display:none" onclick="toggleImage()">View Skull/Specimen</button>
+</div>
     <div class="no-img" id="noImg" style="display:none">No image available</div>
   </div>
   <div class="fields">
@@ -119,6 +142,7 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--bg3);color:var(--te
 </div>
 
 <script>
+  let currentImgIdx = 0;
 const MAMMALS=[
   {common:"Virginia Opossum",scientific:"Didelphis virginiana",family:"Didelphidae",order:"Didelphimorphia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/opossum_hubwqq.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899636/opossum_spec_efxexv.png"]},
   {common:"Southeastern Shrew",scientific:"Sorex longirostris",family:"Soricidae",order:"Soricomorpha",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436437/Southeastern_Shrew_pfxwsv.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899638/southeasternshrew_spec_o7yy0t.png"]},
@@ -222,16 +246,30 @@ function rebuildQueue(){
 function loadAnimal(){
   if(current>=queue.length){showEndModal();return;}
   answered=false;hintStage=0;
+  currentImgIdx = 0; // Reset to first photo
+
   const m=queue[current];
   const img=document.getElementById('animalImg');
   const noImg=document.getElementById('noImg');
+  const toggleBtn=document.getElementById('imgToggle');
+
+  // Handle both single 'img' and array 'imgs' from your data
+  const images = m.imgs || (m.img ? [m.img] : []);
+  
   img.classList.add('loading');
   img.style.display='block';
   noImg.style.display='none';
-  img.onerror=()=>{img.style.display='none';noImg.style.display='flex';};
+  
+  // Show button only if multiple images exist
+  toggleBtn.style.display = images.length > 1 ? 'block' : 'none';
+  toggleBtn.textContent = "View Skull/Specimen";
+
+  img.onerror=()=>{img.style.display='none';noImg.style.display='flex';toggleBtn.style.display='none';};
   img.onload=()=>img.classList.remove('loading');
-  img.src=m.img;
-  img.alt='Identify this mammal: '+m.common;
+  
+  img.src=images[0];
+  img.alt='Identify this mammal';
+
   ['fCommon','fScientific','fFamily','fOrder'].forEach(id=>{
     const el=document.getElementById(id);el.value='';el.className='';el.disabled=false;
   });
@@ -334,6 +372,16 @@ document.addEventListener('keydown',e=>{
 });
 buildFilterBar();
 rebuildQueue();
+  function toggleImage() {
+  const m = queue[current];
+  const images = m.imgs || [m.img];
+  const img = document.getElementById('animalImg');
+  const toggleBtn = document.getElementById('imgToggle');
+
+  currentImgIdx = (currentImgIdx + 1) % images.length;
+  img.src = images[currentImgIdx];
+  toggleBtn.textContent = currentImgIdx === 0 ? "View Skull/Specimen" : "View Live Photo";
+}
 </script>
 </body>
 </html>
