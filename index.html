@@ -73,24 +73,32 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--bg3);color:var(--te
 .modal h2{font-family:'Playfair Display',serif;font-size:22px;margin-bottom:8px;color:var(--text)}
 .modal .big-score{font-size:52px;font-weight:600;color:var(--green);margin:12px 0}
 .modal p{font-size:14px;color:var(--text2);margin-bottom:20px}
-
-  .img-toggle-btn {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  background: rgba(0, 0, 0, 0.6);
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  backdrop-filter: blur(4px);
-  z-index: 10;
-}
-.img-toggle-btn:hover { background: rgba(0, 0, 0, 0.8); }
-
+/* facts toggle */
+.facts-toggle-row{display:flex;align-items:center;justify-content:flex-end;margin-bottom:12px}
+.toggle-label{font-size:12px;color:var(--text3);margin-right:8px}
+.toggle{position:relative;display:inline-block;width:36px;height:20px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--bg3);border:0.5px solid var(--border2);border-radius:20px;transition:0.2s}
+.toggle-slider:before{position:absolute;content:'';height:14px;width:14px;left:2px;bottom:2px;background:var(--text3);border-radius:50%;transition:0.2s}
+.toggle input:checked+.toggle-slider{background:var(--green);border-color:var(--green-dark)}
+.toggle input:checked+.toggle-slider:before{transform:translateX(16px);background:#fff}
+/* photo nav */
+.img-nav{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:14px;min-height:24px}
+.img-nav-btn{background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:16px;cursor:pointer;color:var(--text2);line-height:1;transition:background 0.15s}
+.img-nav-btn:hover{background:var(--bg2)}
+.img-nav-btn:disabled{opacity:0.25;cursor:default}
+.img-dots{display:flex;gap:5px;align-items:center}
+.img-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);cursor:pointer;transition:background 0.2s}
+.img-dot.active{background:var(--green)}
+/* facts modal */
+.facts-modal{background:var(--bg);border-radius:var(--radius-lg);border:0.5px solid var(--border);padding:24px;max-width:480px;width:92%;text-align:left;max-height:80vh;overflow-y:auto}
+.facts-modal h2{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:4px;color:var(--text)}
+.facts-modal .sci-name{font-size:13px;color:var(--text3);font-style:italic;margin-bottom:16px}
+.facts-section{margin-bottom:14px}
+.facts-section h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text3);margin-bottom:6px}
+.facts-section ul{list-style:none;padding:0}
+.facts-section ul li{font-size:13px;color:var(--text2);line-height:1.55;padding:2px 0 2px 16px;position:relative}
+.facts-section ul li:before{content:'•';position:absolute;left:4px;color:var(--green)}
 </style>
 </head>
 <body>
@@ -106,14 +114,18 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--bg3);color:var(--te
   </div>
   <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
   <div class="filter-bar" id="filterBar"></div>
+  <div class="facts-toggle-row">
+    <span class="toggle-label">Show facts after each question</span>
+    <label class="toggle"><input type="checkbox" id="factsToggle" checked><span class="toggle-slider"></span></label>
+  </div>
   <div class="img-wrap">
     <img id="animalImg" src="" alt="Mammal to identify">
-    <div class="img-wrap">
-  <img id="animalImg" src="" alt="Mammal to identify">
-  <div class="no-img" id="noImg" style="display:none">No image available</div>
-  <button id="imgToggle" class="img-toggle-btn" style="display:none" onclick="toggleImage()">View Skull/Specimen</button>
-</div>
     <div class="no-img" id="noImg" style="display:none">No image available</div>
+  </div>
+  <div class="img-nav" id="imgNav" style="display:none">
+    <button class="img-nav-btn" id="imgPrev" onclick="changePhoto(-1)">&#8592;</button>
+    <div class="img-dots" id="imgDots"></div>
+    <button class="img-nav-btn" id="imgNext" onclick="changePhoto(1)">&#8594;</button>
   </div>
   <div class="fields">
     <div class="field-group"><label>Common name</label><input id="fCommon" placeholder="e.g. Virginia Opossum" autocomplete="off" spellcheck="false"></div>
@@ -130,77 +142,147 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--bg3);color:var(--te
   <div class="mode-info">Press <strong>Enter</strong> to submit &middot; <strong>Tab</strong> to move between fields</div>
 </div>
 
-<!-- CHANGE 1: Added "Retry missed" button to the end modal -->
+<!-- End modal -->
 <div class="modal-bg" id="endModal">
   <div class="modal">
     <h2>Quiz complete!</h2>
-    <div class="big-score" id="finalScore">—</div>
+    <div class="big-score" id="finalScore">&#8212;</div>
+    <p id="finalTime" style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px"></p>
     <p id="finalMsg"></p>
     <button class="btn btn-primary" id="retryBtn" style="width:100%;margin-bottom:8px" onclick="retryMissed()">Retry missed questions</button>
     <button class="btn" style="width:100%" onclick="restartQuiz()">Start over (all questions)</button>
   </div>
 </div>
+<!-- Facts popup modal -->
+<div class="modal-bg" id="factsModal">
+  <div class="facts-modal">
+    <h2 id="factsName"></h2>
+    <div class="sci-name" id="factsSci"></div>
+    <div id="factsBody"></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="closeFacts()">Next question &#8594;</button>
+  </div>
+</div>
 
 <script>
-  let currentImgIdx = 0;
+const FACTS={
+  "Virginia Opossum":{id:["Prehensile tail for climbing","Large, furless ears","Pelage: light gray with long darker guard hairs","Size: ~5 lbs, short legs, thick body","Skull: elongated, pointed snout with many teeth","Dentition: 5/4, 1/1, 3/3, 4/4 = 50 teeth!"],nh:["Marsupials — babies ride on mom's back","Plantigrade","Scent gland on chest and in pouch = musky odor","Solitary after weaning","Average # of offspring = 15!","Present throughout Eastern half of US"]},
+  "Southeastern Shrew":{id:["Tail longer than half of body length","Long, pointed snout","Reddish-gray dorsal fur","Small ears slightly peeking out from fur","Only in Southeastern US, throughout NC"]},
+  "Northern Short-tailed Shrew":{id:["Uniformly slate gray, velvety fur","Tail length less than half of body","Snout shorter than other shrews","Ears hidden by fur","Males slightly larger than females"]},
+  "Least Shrew":{id:["Tail darker on top, lighter beneath","Ear holes hidden in fur","Short tail, less than half of body","Dark brown to reddish brown dorsal fur"],nh:["Dental formula different from other shrews","Present throughout Eastern US and into Mexico"]},
+  "Eastern Mole":{id:["Robust body, thick velvety fur — can be silver, black, or copper","Short, round, almost hairless tail","Large, webbed front feet for digging","No external eyes or ears","Size: 4.5–6.5 inches"],nh:["Present throughout Eastern half of US"]},
+  "Eastern Red Bat":{id:["Pelage = brick red to yellowish red","White frosted fur tips","Thickly furred uropatagium","Size: 3.5–4.5 inches","Short, blunt, triangular tragus directs sounds for echolocation"],nh:["Present throughout Eastern half of US"]},
+  "Big Brown Bat":{id:["Tail less than half total body length; tip projects slightly beyond uropatagium","Tan to chocolate brown; ventral fur lighter","Naked parts all black","Females larger than males","Size: 4.5–5.25 inches","Tragus is short, broad, and rounded"],nh:["Present throughout US and Mexico"]},
+  "Southeastern Myotis":{id:["Thick, short, wooly fur — dark at base, whitish at tips","Long toe hairs extend past ends of claws","Large hind foot","Bare, pinkish nose","Short, blunt tragus","Size: 3–3.75 inches"],nh:["NC is Northern end of range, only in Sandhills"]},
+  "Brazilian Free-tailed Bat":{id:["Short snout, wrinkled upper lip","Free tail extends well beyond uropatagium","Brown fur, large rounded ears","Tail almost half their size","Small, blunt tragus"],nh:["Southern states and Mexico; only in SE NC"]},
+  "Eastern Chipmunk":{id:["Grayish to reddish brown fur with 5 dark stripes down back","Light and dark stripes around eyes","Hairy, not bushy, flattened tail","Ventral surface white","Small rounded ears","Large cheek pouches","Size: about 10 inches nose to tail"],nh:["Herbivore = diastema","NC is eastern range"]},
+  "Woodchuck":{id:["Stocky build; can sit/stand on hind legs","Gray to cinnamon to dark brown pelage","Short bushy tail — ¼ of body length","Size: 16–27 inches, up to 13 lbs","White-tipped guard hairs = grizzled appearance","AKA groundhog, marmot"],nh:["NC is Southern end of range; present throughout NE US and Canada","White teeth, uncharacteristic of rodents"]},
+  "Southern Flying Squirrel":{id:["Large black eyes encircled by black hair","Grayish brown dorsal; white/yellowish ventral","Patagium = elastic skin from wrist to ankle for gliding","Size: 7–11 inches, 3 ounces"],nh:["Present throughout Eastern US","Distinguished from Northern Flying Squirrel by underbelly color — Northern's is gray"]},
+  "Eastern Fox Squirrel":{id:["White face in front of eyes","Black face from eyes to ears","Pelage can vary — often grayish, can be brownish or reddish","Size: larger than gray squirrel, 18–27 inches, 2–2.5 lbs"],nh:["Pine forests — Sandhills and coastal plain, NW corner of NC"]},
+  "Eastern Gray Squirrel":{id:["Usually gray pelage, but can be cinnamon, black, or white","Smaller than E. Fox Squirrel; without the white rostrum","Fluffy tail","Size: 14–21 inches, 1 lb"],nh:["Everywhere in NC"]},
+  "American Beaver":{id:["Broad, flat tail covered in black scales","Bright orange teeth grow through lifetime for chewing wood (iron coated)","Size: largest rodent in NA — 35–46 inches, up to 70 lbs"],nh:["Aquatic adaptations: closable nostrils, closable ears, transparent eye membrane, webbed hind feet","Anal and castor glands for scent marking","Present throughout US and Canada"]},
+  "Meadow Jumping Mouse":{id:["Long tail and long hind feet for jumping","Tail uniform color — not white-tipped like woodland jumping mouse","Small delicate forelimbs","Back often darker than sides with black-tipped hairs","Size: tail longer than rest of body, 1 ounce"],nh:["Present throughout NC; NC is southern end of its range"]},
+  "Cotton Mouse":{id:["Dark dorsal color, white ventral fur","White feet","Sparsely haired tail","Size: 5–8 inches including tail; tail is ⅓ of total body length"],nh:["Only in SE US; only on Coastal Plain of NC"]},
+  "White-footed Mouse":{id:["Pale to rich reddish brown dorsal pelage; white belly and feet","Size: 6–8 inches total; tail more than ⅓ but almost ½ total body length","Tail longer than that of cotton mouse"],nh:["Found throughout NC and most of Eastern half of US — if you find a Peromyscus in Wake County, this is likely it!"]},
+  "Deer Mouse":{id:["Smaller hind feet than P. leucopus","Size: 4–8 inches including tail; generally shorter tail than P. leucopus","Very difficult to distinguish between Peromyscus species"],nh:["Uncommon in NC; only in far Western part of state","Most widespread mouse in North America"]},
+  "Hispid Cotton Rat":{id:["Mixture of tan/brown/black fur gives coarse 'hispid' look; white to gray underparts","Sparse hair on tail","Size: 8–14 inches; tail shorter than body length"],nh:["Common throughout S. America and up to midwest N. America"]},
+  "Southern Red-backed Vole":{id:["Gray pelage with chestnut brownish-reddish stripe running down back","Dense long soft fur in winter","Size: 3.5–6.5 inches"],nh:["Found in coniferous or mixed forests in cool climates","NC is Southern end of range — only in mountains in NC"]},
+  "House Mouse":{id:["Tail as long as rest of body; very little hair on tail","Fur ranges from light brown to black; white or buff belly","Relatively large ears","Size: 2.5–3.5 inches"],nh:["Non-native but found everywhere in US"]},
+  "Black Rat":{id:["Relatively large ears","Black pelage with lighter belly","Sparsely-haired tail longer than body/head; tail uniformly dark","Size: 12–18 inches"],nh:["Non-native; found throughout US and on all continents on Earth"]},
+  "Norway Rat":{id:["Coarse brownish fur","Naked ears and tail; tail shorter than head/body; tail pale underneath","Smaller ears than black rat","Straight temporal ridge","Size: 12–18 inches"],nh:["Non-native; present throughout the US and on every continent except Antarctica"]},
+  "Nutria":{id:["Small eyes and ears on top of head","Round tail","Webbed hind feet","Coarse brown guard hairs; dark gray soft underfur","White muzzle/whiskers","Size: 18–23 inches, up to 22 lbs","Skull: boxy head, orange teeth"],nh:["Native to South America; invasive in SE US"]},
+  "Snowshoe Hare":{id:["Robust back feet; fur on soles of feet","Size: 16–21 inches, up to 4 lbs; larger than cottontails","Diastema = gap between incisors and molars","Lack canine teeth","Fenestrated skull in all lagomorphs"],nh:["Pelage changes from grayish brown to white in winter in some regions","Hares don't burrow like rabbits","Altricial young (born helpless, dependent on parent)"]},
+  "Eastern Cottontail":{id:["Dense fluffy brown underfur; coarse gray guard hairs with black tips","White ventral surface; white underside of tail shows when running","Size: 15–18 inches, up to 3 lbs","Skull: fenestration","Dentition: 4 upper incisors (2 front, 2 behind); diastema (no canines)"],nh:["Present throughout Eastern half of North and Central America","Altricial young (born helpless, dependent on parent)"]},
+  "Marsh Rabbit":{id:["Head and tail smaller than E. Cottontail","Rounded ears","Tail almost non-existent","Darker underside of tail than E. Cottontail — more yellowish tan","Size: 15–17 inches","Skull: fenestration","Dentition: four upper incisors; diastema (no canines)"],nh:["Altricial young (born helpless, dependent on parent)","Only in SE US; some in Eastern NC"]},
+  "Northern Raccoon":{id:["Black mask on eyes","White forehead, cheeks, and snout","Ringed tail","Size: 24–37 in, 9–35 lbs","Skull: short rostrum, no sagittal crest"],nh:["Incredibly adaptable; often near moist woodlands; spread widely in urban areas","Select trees for dens but use burrows, buildings, sewers","Do not hibernate, but may sleep for long periods","Survive 30+ foot drops without injury","Larger in north where some reach 50% body fat"]},
+  "Coyote":{id:["Smaller than wolves","Smaller nose but relatively larger, somewhat pointed ears","Typically brown to gray all over","Pointed snout","Tail held down while running","Size: 39–51 in, 15–50 lbs","Skull: large canines; rostrum slopes gently to forehead"],nh:["Present all over North America","Larger in east due to wolf hybridization","Hybridize frequently with dogs","Hunt small to large mammals including deer","Higher-pitched howl than wolves"]},
+  "Gray Wolf":{id:["Largest wild canid","Typically grizzled gray (varies white to red-brown)","Larger nose but relatively smaller, somewhat rounded ears","Rounded snout","Tail horizontal while running","Size: 39–51 in, 60–180 lbs","Skull: large skull; rostrum slopes gently to forehead"],nh:["Found mostly north; also in parts of Rockies","Pack hunters, typically 5–10 members","Can kill large animals (bison) but will eat small rodents too"]},
+  "Red Wolf":{id:["Size between coyote and gray wolf","Mostly brown; some black on back; some red around ears, head, and legs","Slightly wider muzzle than coyote but similarly pointed snout and ears","Heavier set than coyote","Size: 39–51 in, 40–90 lbs"],nh:["~20 left in the wild","Listed as unique species and endangered by FWS","By 1970s wild red wolves only found in TX/LA coastal prairie and marsh habitat"]},
+  "Red Fox":{id:["Bushy, white-tipped tail","Black 'socks' on feet","Black-tipped ears","Red body","Size: 27–32 cm, 7–13 lbs","Skull: V-shaped temporal lines"],nh:["Opportunistic — prey heavily on voles and rabbits, invertebrates, birds, or fruit","World's most widely distributed mammal (Wilson and Kays)","Introduced by Europeans for hunting; declining in east due to coyote expansion"]},
+  "Gray Fox":{id:["Larger than red fox","Black-tipped tail","Gray back; red or lighter lower body","Often dark stripe down back","Size: 31–44 cm, 7–15 lbs","Skull: U-shaped temporal lines"],nh:["Often climbs trees — foreleg structure allows this, most other canids cannot","Most omnivorous canid; often eats fruit; rarely seen in daylight (crepuscular)"]},
+  "American Black Bear":{id:["Larger ears","Rounded back; lacks shoulder hump","Relatively straight from forehead to nose","Hair color and body size unreliable for ID","Size: 51–70 in tall, 86–520 lbs","Skull: smooth slope from forehead to rostrum"],nh:["Population increasing throughout most of range; shy and retreats quickly","Many adults can climb trees","Lips are prehensile","Omnivorous and opportunistic feeder","Plantigrade locomotion"]},
+  "Brown Bear":{id:["Large head","Dish-shaped profile (steep drop between forehead and rostrum)","Shoulder hump","Hair color and body size variable","Ears may appear more rounded","Size: 39–110 in tall, 180–1300 lbs"],nh:["Coastal populations larger than inland","Omnivorous predator; persists in open plains, forests, and tundra","Plantigrade locomotion"]},
+  "Polar Bear":{id:["White and very large","Long neck with relatively smaller head","Size: 75–102 in tall, 386–1764 lbs","Skull: large, elongated","Fur can appear yellow in summer; only pregnant females den"],nh:["Select ringed seals most, but also other seals, walruses, belugas, narwhals, sea ducks","Can fast for up to 8 months when food is scarce","Plantigrade locomotion"]},
+  "Fisher":{id:["Dark, stocky weasel","Somewhat wider head than other weasels","Face/shoulders sometimes gold/silver","Dark legs and tail","Larger than marten","Round ears, short snout","Size: 30–47 in, 4–12 lbs"],nh:["Often eats porcupines, but also fruits and nuts","Arboreal and terrestrial"]},
+  "Long-tailed Weasel":{id:["Dark-tipped tail","Notably long tail (almost half head-body length)","Variable white/cream on legs/underside","Elongated body","Size: 5–14 in, 0.2–1.0 lbs","Skull: boxy, blunt rostrum, flat top"],nh:["Molt to white winter coat in the north","Hunts small prey (mice/rabbits) in dense bushes along drainages"]},
+  "American Mink":{id:["Dark on back and belly","Small white chin patch","Hind toes slightly webbed","Size: 19–28 in, 1.2–2.8 lbs","Skull: boxy, larger than weasel"],nh:["Semi-aquatic; mostly solitary","Eats aquatic birds, mammals, fish, and frogs","Dens on banks near water","Common throughout North America near shorelines but rarely seen"]},
+  "North American River Otter":{id:["Brown back","White/cream on chin and throat","Long pointed tail thick at base","Webbed feet","Long silvery whiskers","Size: 35–43 in, 10–30 lbs"],nh:["Seen on NC State campus","Eats fish and other aquatic animals","Re-purposes dens from other animals with underwater entrance","Ranges throughout North America; rare in east"]},
+  "Eastern Spotted Skunk":{id:["ONLY found in western NC","Many spots and elongated marks","White-tipped tail","Size: 11–24 in, 0.5–2.0 lbs","Skull: flat top, blunt rostrum, pointy canines"],nh:["Mostly nocturnal and rarely seen","Feeds on mice, birds, bird eggs, insects, and fruits","'Cracks eggs by hiking them back between hind legs like a football center' (Wilson & Kays)"]},
+  "Striped Skunk":{id:["Dorsal white stripes converge in V at neck","May appear all white, all black, or spotted","White stripe on forehead","Large tail","All throughout US","Size: 22–31 in, 3–14 lbs"],nh:["Can spray accurately up to 4 m; dens in secondary burrows","Eats insects, small mammals, birds, carrion, fruit"]},
+  "Cougar":{id:["Large, slender cat","Short and coarse texture","Yellowish to grayish brown upper; paler buffy belly","Whitish throat and chest","Tail long, cylindrical, about ⅓ of total length; tip usually dark","Size: males 80–265 lbs, females 64–141 lbs","Skull: broad and short with high, arched forehead","Dentition: 3/3 1/1 3/2 1/1 = 30 teeth"],nh:["Solitary except for mating and juvenile dependence","Primarily hunt via sight and sound","Historically most extensive distribution of all American terrestrial mammals; exterminated in eastern NA except small FL panther population"]},
+  "Bobcat":{id:["Pelage various shades of buff and brown with dark brown or black stripes/spots","Tip of tail and backs of ears are black","Short ear tufts and ruffs of hair on side of head (look like sideburns)","Digitigrade locomotion","Size: 8–33 lbs"],nh:["Solitary and nocturnal (but often active at dusk)","Territorial — uses urine, feces, and anal gland secretions to delineate home ranges","Primarily hunt via sight and sound"]},
+  "Canada Lynx":{id:["Pelage normally yellowish-brown; upper parts may have frosted gray look; underside more buff","Many have dark spots","Tail quite short, often ringed and tipped with black","Triangular ears tipped with tufts of long black hairs","Size: 9–38 lbs"],nh:["Solitary and seemingly territorial","Activity almost entirely nocturnal","Primarily visual predators but also have well-developed hearing"]},
+  "Elk":{id:["Pelage dark brown to tan depending on season; head, neck, belly, and legs darker","Long head with large ears and widely branching antlers","Dark shaggy mane from neck to chest","Size: males 392–1095 lbs, females 377–644 lbs"],nh:["Large populations in North America only in western US and small region of Michigan","Social — summer herds with as many as 400 individuals","Matriarchal herds dominated by single cow"]},
+  "White-tailed Deer":{id:["Dorsal coloration differs by season — more gray in winter, more red in summer","White fur behind nose, around eyes, inside ears, over chin/throat, on upper insides of legs, and beneath tail","Size: 125–301 lbs"],nh:["Scent glands between hooves on all four feet; metatarsal glands on outside of each hind leg; tarsal glands on inside — used for intraspecies communication"]},
+  "Mule Deer":{id:["Pelage ranges from dark brown gray to brown or reddish","Dark V-shaped mark from between eyes upward and laterally","Rump patch may be white or yellow; throat patch white","Huge ears","Dark dorsal line on some runs down top of tail to black tail tip","Size: 95–330 lbs"]},
+  "Moose":{id:["Long, bulbous, drooping muzzle","Long slender legs supporting massive body","Males have largest antlers of any mammal — antlers palmate","Pelage generally dark — black to brown or grayish brown with lighter lower legs","Size: can stand as tall as 7.5 feet"],nh:["Circumpolar distribution in boreal forests; found in much of AK, Canada, just south of Canadian border","Least social cervid species","'Moose' comes from Algonquin meaning 'twig eater'"]},
+  "Caribou":{id:["Color variable but usually brown","White areas often present on belly, neck, and above hooves","Both sexes have antlers — only deer species where this is true","Size: wide range; males sometimes twice as large as females"],nh:["AKA reindeer (domesticated subspecies)","Hollow hairs trap heat and make them more buoyant","Make audible clicking noises while walking (tendons rubbing across bone in foot)","Found in arctic tundra and subarctic boreal forest"]},
+  "Pronghorn":{id:["Dense coarse hair providing great insulation","Dorsal fur rufous brown","Creamy underbellies, rumps, and neck patches","Males have short black manes, neck patch, and black stripe from horn to horn","Erect horns with posterior hook and short anterior prong","Size: average mass 110–126 lbs","Dentition: incisors and canines occur only on lower jaw"],nh:["Limbs specialized for running — fastest known New World mammal"]},
+  "American Bison":{id:["Huge heads and distinctive shoulder hump","Brown fur; longer hair in front than rear","Black horns that curve upward and inward ending in sharp tip","Size: 700 to almost 2000 lbs"],nh:["Gregarious — arranged in groups by sex, age, season, and habitat","Once widespread from Alaska to northern Mexico; slaughtered herds caused near extermination; now found on protected lands in western US and Canada"]},
+  "Mountain Goat":{id:["Stout-bodied","Thick coat of white hairs with some brown intermixed dorsally","Pure black, rather thin horns present on both sexes","Size: 125–180 lbs"],nh:["Found in steep rocky areas with cliffs or bluffs in alpine or sub-alpine regions","Do not shed horns — annual growth rings help determine age"]},
+  "Bighorn Sheep":{id:["Large, curved horns in males; females also have horns but shorter and less curved","Smooth pelage — rich glossy brown in summer but fades by late winter","Size: males 260–280 lbs; females 115–200 lbs","Skull: double-layered skulls shored with struts of bone for battle protection"],nh:["Well known for head-to-head combat between males; horn size symbol of rank","Inhabit alpine meadows, grassy mountain slopes, and foothill country close to rocky cliffs/bluffs"]},
+  "Feral Pig":{id:["Adults have thick coarse coat ranging from black to brownish-red to white","May have speckled or solid pelage; may also have longer bristly hairs down middle of back","Size: 145–600 lbs; females tend to be smaller"],nh:["Originated in Eurasia; invasive in SE US and California; on every continent except Antarctica","Live in groups of 6–20 closely related females","Can breed throughout year — usually 5–7 offspring on average"]},
+  "Bottlenose Dolphin":{id:["Fusiform body lacking many external traits of terrestrial mammals (hair, external ears, hind limbs)","Tall, curved dorsal fin near middle of back","Typically black to light gray on sides with white bellies (sometimes pinkish)","Size: 570–1101 lbs","Skull: telescoped skull — rostra elongated and tapered anteriorly; nostrils moved dorsally for easier breathing","Dentition: sharp teeth used to grasp prey; typically swallow whole"]},
+  "West Indian Manatee":{id:["Somewhat seal-shaped with forelimbs (flippers) adapted for aquatic life","Hair distributed sparsely over body; surface layer of skin continually sloughing off","Size: average body length ~10 feet"],nh:["Can withstand large changes in salinity — move between freshwater and marine habitats","Largely solitary; not territorial and no social hierarchy","1 offspring on average; gestation almost a year"]}
+};
+
 const MAMMALS=[
-  {common:"Virginia Opossum",scientific:"Didelphis virginiana",family:"Didelphidae",order:"Didelphimorphia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/opossum_hubwqq.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899636/opossum_spec_efxexv.png"]},
-  {common:"Southeastern Shrew",scientific:"Sorex longirostris",family:"Soricidae",order:"Soricomorpha",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436437/Southeastern_Shrew_pfxwsv.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899638/southeasternshrew_spec_o7yy0t.png"]},
-  {common:"Northern Short-tailed Shrew",scientific:"Blarina brevicauda",family:"Soricidae",order:"Soricomorpha",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436435/Northern_Short_tailed_Shrew_irx0rn.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899638/shortshrew_spec_trsuzi.png"]},
-  {common:"Least Shrew",scientific:"Cryptotis parva",family:"Soricidae",order:"Soricomorpha",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/Least_Shrew_xt2tt9.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899632/leastshrew_spec_eu7v5h.png"]},
-  {common:"Eastern Mole",scientific:"Scalopus aquaticus",family:"Talpidae",order:"Soricomorpha",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436435/mole_wlz8hv.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899634/mole_spec_hnfboc.png"]},
-  {common:"Eastern Red Bat",scientific:"Lasiurus borealis",family:"Vespertilionidae",order:"Chiroptera",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/red_bat_ogbjyd.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899637/redbat_spec_pz4qs3.png"]},
-  {common:"Big Brown Bat",scientific:"Eptesicus fuscus",family:"Vespertilionidae",order:"Chiroptera",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436431/brown_bat_ibhfrf.png","https://res.cloudinary.com/dyowzevps/image/upload/v1777899629/brownbat_spec_f7lvpf.png"]},
+  {common:"Virginia Opossum",scientific:"Didelphis virginiana",family:"Didelphidae",order:"Didelphimorphia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/opossum_hubwqq.jpg"},
+  {common:"Southeastern Shrew",scientific:"Sorex longirostris",family:"Soricidae",order:"Soricomorpha",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436437/Southeastern_Shrew_pfxwsv.jpg"},
+  {common:"Northern Short-tailed Shrew",scientific:"Blarina brevicauda",family:"Soricidae",order:"Soricomorpha",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436435/Northern_Short_tailed_Shrew_irx0rn.jpg"},
+  {common:"Least Shrew",scientific:"Cryptotis parva",family:"Soricidae",order:"Soricomorpha",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/Least_Shrew_xt2tt9.jpg"},
+  {common:"Eastern Mole",scientific:"Scalopus aquaticus",family:"Talpidae",order:"Soricomorpha",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436435/mole_wlz8hv.jpg"},
+  {common:"Eastern Red Bat",scientific:"Lasiurus borealis",family:"Vespertilionidae",order:"Chiroptera",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/red_bat_ogbjyd.jpg"},
+  {common:"Big Brown Bat",scientific:"Eptesicus fuscus",family:"Vespertilionidae",order:"Chiroptera",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436431/brown_bat_ibhfrf.png"},
   {common:"Southeastern Myotis",scientific:"Myotis austroriparius",family:"Vespertilionidae",order:"Chiroptera",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436435/myotis_mbfez1.jpg"},
   {common:"Brazilian Free-tailed Bat",scientific:"Tadarida brasiliensis",family:"Molossidae",order:"Chiroptera",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436433/free_tailed_bat_dmfjkc.jpg"},
-  {common:"Eastern Chipmunk",scientific:"Tamias striatus",family:"Sciuridae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436431/chipmunk_ny7jv3.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899629/chipmunk_spec_swq9mk.png"]},
-  {common:"Woodchuck",scientific:"Marmota monax",family:"Sciuridae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436438/woodchuck_xhe6x2.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899640/woodchuck_spec_ttumv1.png"]},
-  {common:"Southern Flying Squirrel",scientific:"Glaucomys volans",family:"Sciuridae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436432/flying_squirrel_bimmrn.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899631/flyingsquirrel_spec_otx241.png"]},
-  {common:"Eastern Fox Squirrel",scientific:"Sciurus niger",family:"Sciuridae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436432/fox_squirrel_aedfdd.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899631/foxsquirrel_spec_ilmoae.png"]},
-  {common:"Eastern Gray Squirrel",scientific:"Sciurus carolinensis",family:"Sciuridae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436433/gray_squirrel_r8welo.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899633/graysquirrel_spec_mlcyrl.png"]},
-  {common:"American Beaver",scientific:"Castor canadensis",family:"Castoridae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436429/beaver_tc9gxt.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899628/beaver_spec_ezthov.png"]},
-  {common:"Meadow Jumping Mouse",scientific:"Zapus hudsonius",family:"Dipodidae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/jumping_mouse_ojg8n5.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899632/jumpingmouse_spec_rnrnnh.png"]},
-  {common:"Cotton Mouse",scientific:"Peromyscus gossypinus",family:"Cricetidae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436430/cotton_mouse_fa6jek.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899633/cottonmouse_spec_ewnbse.png"]},
-  {common:"White-footed Mouse",scientific:"Peromyscus leucopus",family:"Cricetidae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436438/white_footed_mouse_r0r9fa.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899640/whitefootmouse_spec_h7vevc.png"]},
-  {common:"Deer Mouse",scientific:"Peromyscus maniculatus",family:"Cricetidae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436431/deer_mouse_bxydps.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899631/deermouse_spec_en81wk.png"]},
-  {common:"Hispid Cotton Rat",scientific:"Sigmodon hispidus",family:"Cricetidae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436433/hispid_wmfcdv.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899632/hispid_spec_idgp9u.png"]},
-  {common:"Southern Red-backed Vole",scientific:"Clethrionomys gapperi",family:"Cricetidae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436437/vole_przpne.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899639/vole_spec_kxnent.png"]},
-  {common:"House Mouse",scientific:"Mus musculus",family:"Muridae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/house_mouse_okyqtj.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899632/house_spec_wgpdhh.png"]},
-  {common:"Black Rat",scientific:"Rattus rattus",family:"Muridae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/rat_ci03tt.avif","https://res.cloudinary.com/dyowzevps/image/upload/v1777899628/blackrat_spec_pjvsbz.png"]},
-  {common:"Norway Rat",scientific:"Rattus norvegicus",family:"Muridae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436435/norway_rat_l7b0km.webp","https://res.cloudinary.com/dyowzevps/image/upload/v1777899634/norway_spec_zsknmp.png"]},
-  {common:"Nutria",scientific:"Myocastor coypus",family:"Myocastoridae",order:"Rodentia",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436435/nutria_piwevp.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899635/nutria_spec_lftap6.png"]},
-  {common:"Snowshoe Hare",scientific:"Lepus americanus",family:"Leporidae",order:"Lagomorpha",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436433/hare_skdkar.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899638/snow_spec_muttmk.png"]},
-  {common:"Eastern Cottontail",scientific:"Sylvilagus floridanus",family:"Leporidae",order:"Lagomorpha",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/eastern_cottontail_otmjsq.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899636/rabbit_spec_oopqex.png"]},
-  {common:"Marsh Rabbit",scientific:"Sylvilagus palustris",family:"Leporidae",order:"Lagomorpha",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/marsh_rabbit_o6pv05.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899634/marsh_spec_uj0now.png"]},
-  {common:"Northern Raccoon",scientific:"Procyon lotor",family:"Procyonidae",order:"Carnivora",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777438269/raccoon_uc7mir.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899636/raccoon_spec_ue0zgw.png"]},
-  {common:"Coyote",scientific:"Canis latrans",family:"Canidae",order:"Carnivora",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436431/coyote_qriqh2.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899637/Screenshot_2026-05-04_at_1.18.09_AM_rf5bpt.png"]},
-  {common:"Gray Wolf",scientific:"Canis lupus",family:"Canidae",order:"Carnivora",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/gray_wolf_m8x2im.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899640/wolf_spec_ryoxkc.png"]},
+  {common:"Eastern Chipmunk",scientific:"Tamias striatus",family:"Sciuridae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436431/chipmunk_ny7jv3.jpg"},
+  {common:"Woodchuck",scientific:"Marmota monax",family:"Sciuridae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436438/woodchuck_xhe6x2.jpg"},
+  {common:"Southern Flying Squirrel",scientific:"Glaucomys volans",family:"Sciuridae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436432/flying_squirrel_bimmrn.jpg"},
+  {common:"Eastern Fox Squirrel",scientific:"Sciurus niger",family:"Sciuridae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436432/fox_squirrel_aedfdd.jpg"},
+  {common:"Eastern Gray Squirrel",scientific:"Sciurus carolinensis",family:"Sciuridae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436433/gray_squirrel_r8welo.jpg"},
+  {common:"American Beaver",scientific:"Castor canadensis",family:"Castoridae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436429/beaver_tc9gxt.jpg"},
+  {common:"Meadow Jumping Mouse",scientific:"Zapus hudsonius",family:"Dipodidae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/jumping_mouse_ojg8n5.jpg"},
+  {common:"Cotton Mouse",scientific:"Peromyscus gossypinus",family:"Cricetidae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436430/cotton_mouse_fa6jek.jpg"},
+  {common:"White-footed Mouse",scientific:"Peromyscus leucopus",family:"Cricetidae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436438/white_footed_mouse_r0r9fa.jpg"},
+  {common:"Deer Mouse",scientific:"Peromyscus maniculatus",family:"Cricetidae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436431/deer_mouse_bxydps.jpg"},
+  {common:"Hispid Cotton Rat",scientific:"Sigmodon hispidus",family:"Cricetidae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436433/hispid_wmfcdv.jpg"},
+  {common:"Southern Red-backed Vole",scientific:"Clethrionomys gapperi",family:"Cricetidae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436437/vole_przpne.jpg"},
+  {common:"House Mouse",scientific:"Mus musculus",family:"Muridae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/house_mouse_okyqtj.jpg"},
+  {common:"Black Rat",scientific:"Rattus rattus",family:"Muridae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/rat_ci03tt.avif"},
+  {common:"Norway Rat",scientific:"Rattus norvegicus",family:"Muridae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436435/norway_rat_l7b0km.webp"},
+  {common:"Nutria",scientific:"Myocastor coypus",family:"Myocastoridae",order:"Rodentia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436435/nutria_piwevp.jpg"},
+  {common:"Snowshoe Hare",scientific:"Lepus americanus",family:"Leporidae",order:"Lagomorpha",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436433/hare_skdkar.jpg"},
+  {common:"Eastern Cottontail",scientific:"Sylvilagus floridanus",family:"Leporidae",order:"Lagomorpha",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/eastern_cottontail_otmjsq.jpg"},
+  {common:"Marsh Rabbit",scientific:"Sylvilagus palustris",family:"Leporidae",order:"Lagomorpha",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/marsh_rabbit_o6pv05.jpg"},
+  {common:"Northern Raccoon",scientific:"Procyon lotor",family:"Procyonidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777438269/raccoon_uc7mir.jpg"},
+  {common:"Coyote",scientific:"Canis latrans",family:"Canidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436431/coyote_qriqh2.jpg"},
+  {common:"Gray Wolf",scientific:"Canis lupus",family:"Canidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/gray_wolf_m8x2im.jpg"},
   {common:"Red Wolf",scientific:"Canis rufus",family:"Canidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/red_wolf_zxqlrm.jpg"},
-  {common:"Red Fox",scientific:"Vulpes vulpes",family:"Canidae",order:"Carnivora",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/red_fox_k17osn.avif","https://res.cloudinary.com/dyowzevps/image/upload/v1777899637/redfox_spec_qm7asr.png"]},
-  {common:"Gray Fox",scientific:"Urocyon cinereoargenteus",family:"Canidae",order:"Carnivora",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436433/Gray_fox_vv0oh7.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899631/grayfox_spec_zhplek.png"]},
-  {common:"American Black Bear",scientific:"Ursus americanus",family:"Ursidae",order:"Carnivora",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436429/black_bear_cecq4z.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899628/bear_spec_lkdvmd.png"]},
+  {common:"Red Fox",scientific:"Vulpes vulpes",family:"Canidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/red_fox_k17osn.avif"},
+  {common:"Gray Fox",scientific:"Urocyon cinereoargenteus",family:"Canidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436433/Gray_fox_vv0oh7.jpg"},
+  {common:"American Black Bear",scientific:"Ursus americanus",family:"Ursidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436429/black_bear_cecq4z.jpg"},
   {common:"Brown Bear",scientific:"Ursus arctos",family:"Ursidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436430/brown_bear_mys993.webp"},
   {common:"Polar Bear",scientific:"Ursus maritimus",family:"Ursidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/polar_bear_fub5g6.avif"},
   {common:"Fisher",scientific:"Pekania pennanti",family:"Mustelidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436432/fisher_avz6w7.jpg"},
-  {common:"Long-tailed Weasel",scientific:"Mustela frenata",family:"Mustelidae",order:"Carnivora",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436437/weasel_obdvdf.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899639/weasel_spec_ust5gv.png"]},
-  {common:"American Mink",scientific:"Neovison vison",family:"Mustelidae",order:"Carnivora",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/mink_tnsqnm.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899634/mink_spec_nxkuic.png"]},
-  {common:"North American River Otter",scientific:"Lontra canadensis",family:"Mustelidae",order:"Carnivora",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/otter_saymmr.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899635/otter_spec_nb5mjk.png"]},
-  {common:"Eastern Spotted Skunk",scientific:"Spilogale putorius",family:"Mephitidae",order:"Carnivora",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436437/spotted-skunk_teyans.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899638/spottedskunk_spec_jhccgs.png"]},
-  {common:"Striped Skunk",scientific:"Mephitis mephitis",family:"Mephitidae",order:"Carnivora",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436437/striped_skunk_qjd9hj.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899639/stripedskunk_spec_pzccrt.png"]},
-  {common:"Cougar",scientific:"Puma concolor",family:"Felidae",order:"Carnivora",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436431/cougar_hbhgis.webp","https://res.cloudinary.com/dyowzevps/image/upload/v1777899636/puma_spec_hfzvzq.png"]},
-  {common:"Bobcat",scientific:"Lynx rufus",family:"Felidae",order:"Carnivora",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436429/bobcat_pboq6n.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899629/bobcat_spec_ajzmdd.png"]},
+  {common:"Long-tailed Weasel",scientific:"Mustela frenata",family:"Mustelidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436437/weasel_obdvdf.jpg"},
+  {common:"American Mink",scientific:"Neovison vison",family:"Mustelidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/mink_tnsqnm.jpg"},
+  {common:"Northern River Otter",scientific:"Lontra canadensis",family:"Mustelidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/otter_saymmr.jpg"},
+  {common:"Eastern Spotted Skunk",scientific:"Spilogale putorius",family:"Mephitidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436437/spotted-skunk_teyans.jpg"},
+  {common:"Striped Skunk",scientific:"Mephitis mephitis",family:"Mephitidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436437/striped_skunk_qjd9hj.jpg"},
+  {common:"Cougar",scientific:"Puma concolor",family:"Felidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436431/cougar_hbhgis.webp"},
+  {common:"Bobcat",scientific:"Lynx rufus",family:"Felidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436429/bobcat_pboq6n.jpg"},
   {common:"Canada Lynx",scientific:"Lynx canadensis",family:"Felidae",order:"Carnivora",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436430/canada_lynx_qt1ni9.jpg"},
   {common:"Elk",scientific:"Cervus canadensis",family:"Cervidae",order:"Artiodactyla",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436432/elk_pdyhb2.jpg"},
-  {common:"White-tailed Deer",scientific:"Odocoileus virginianus",family:"Cervidae",order:"Artiodactyla",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436432/deer_wehqiv.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899631/deer_spec_hp2n8f.png"]},
+  {common:"White-tailed Deer",scientific:"Odocoileus virginianus",family:"Cervidae",order:"Artiodactyla",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436432/deer_wehqiv.jpg"},
   {common:"Mule Deer",scientific:"Odocoileus hemionus",family:"Cervidae",order:"Artiodactyla",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436435/mule_deer_kxslsc.jpg"},
   {common:"Moose",scientific:"Alces alces",family:"Cervidae",order:"Artiodactyla",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436435/moose_znumbc.jpg"},
   {common:"Caribou",scientific:"Rangifer tarandus",family:"Cervidae",order:"Artiodactyla",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436430/caribou_xy11ed.jpg"},
-  {common:"Pronghorn",scientific:"Antilocapra americana",family:"Antilocapridae",order:"Artiodactyla",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/pronghorn_pudhqx.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899635/prong_spec_rktcau.png"]},
+  {common:"Pronghorn",scientific:"Antilocapra americana",family:"Antilocapridae",order:"Artiodactyla",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/pronghorn_pudhqx.jpg"},
   {common:"American Bison",scientific:"Bison bison",family:"Bovidae",order:"Artiodactyla",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436429/bison_njitfb.jpg"},
   {common:"Mountain Goat",scientific:"Oreamnos americanus",family:"Bovidae",order:"Artiodactyla",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436432/gaot_xn4y7j.jpg"},
   {common:"Bighorn Sheep",scientific:"Ovis canadensis",family:"Bovidae",order:"Artiodactyla",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436437/sheep_ftsq0g.jpg"},
   {common:"Feral Pig",scientific:"Sus scrofa",family:"Suidae",order:"Artiodactyla",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436436/pig_t7h1dc.jpg"},
-  {common:"Bottlenose Dolphin",scientific:"Tursiops truncatus",family:"Delphinidae",order:"Cetacea",imgs:["https://res.cloudinary.com/dyowzevps/image/upload/v1777436431/dolphin_sywvyf.jpg","https://res.cloudinary.com/dyowzevps/image/upload/v1777899630/dolphin_spec_ewrcmx.png"]},
+  {common:"Bottlenose Dolphin",scientific:"Tursiops truncatus",family:"Delphinidae",order:"Cetacea",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436431/dolphin_sywvyf.jpg"},
   {common:"West Indian Manatee",scientific:"Trichechus manatus",family:"Trichechidae",order:"Sirenia",img:"https://res.cloudinary.com/dyowzevps/image/upload/v1777436434/manatee_pdebf6.jpg"}
 ];
 
@@ -209,6 +291,7 @@ const ORDERS=[...new Set(MAMMALS.map(m=>m.order))];
 let filtered=[...MAMMALS],queue=[],current=0,score=0,total=0,streak=0,answered=false,hintStage=0;
 let activeOrders=new Set(ORDERS);
 let missedAnimals=[];
+let quizStartTime=null;
 
 function buildFilterBar(){
   const bar=document.getElementById('filterBar');
@@ -239,37 +322,23 @@ function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.ra
 function rebuildQueue(){
   filtered=MAMMALS.filter(m=>activeOrders.has(m.order));
   queue=shuffle([...filtered]);
-  // CHANGE 3: Reset missedAnimals when starting a full new quiz
-  current=0;score=0;total=0;streak=0;hintStage=0;missedAnimals=[];
+  // CHANGE 3: Reset missedAnimals and start timer when starting a full new quiz
+  current=0;score=0;total=0;streak=0;hintStage=0;missedAnimals=[];quizStartTime=Date.now();
   updateScorebar();loadAnimal();
 }
 function loadAnimal(){
   if(current>=queue.length){showEndModal();return;}
   answered=false;hintStage=0;
-  currentImgIdx = 0; // Reset to first photo
-
   const m=queue[current];
   const img=document.getElementById('animalImg');
   const noImg=document.getElementById('noImg');
-  const toggleBtn=document.getElementById('imgToggle');
-
-  // Handle both single 'img' and array 'imgs' from your data
-  const images = m.imgs || (m.img ? [m.img] : []);
-  
   img.classList.add('loading');
   img.style.display='block';
   noImg.style.display='none';
-  
-  // Show button only if multiple images exist
-  toggleBtn.style.display = images.length > 1 ? 'block' : 'none';
-  toggleBtn.textContent = "View Skull/Specimen";
-
-  img.onerror=()=>{img.style.display='none';noImg.style.display='flex';toggleBtn.style.display='none';};
+  img.onerror=()=>{img.style.display='none';noImg.style.display='flex';};
   img.onload=()=>img.classList.remove('loading');
-  
-  img.src=images[0];
-  img.alt='Identify this mammal';
-
+  img.src=m.img;
+  img.alt='Identify this mammal: '+m.common;
   ['fCommon','fScientific','fFamily','fOrder'].forEach(id=>{
     const el=document.getElementById(id);el.value='';el.className='';el.disabled=false;
   });
@@ -341,6 +410,11 @@ function updateScorebar(){
 function showEndModal(){
   const pct=total>0?Math.round((score/total)*100):0;
   document.getElementById('finalScore').textContent=score+'/'+total+' ('+pct+'%)';
+  // Calculate elapsed time
+  const elapsed=Math.floor((Date.now()-quizStartTime)/1000);
+  const mins=Math.floor(elapsed/60);
+  const secs=elapsed%60;
+  document.getElementById('finalTime').textContent='⏱ '+(mins>0?mins+'m ':'')+secs+'s';
   document.getElementById('finalMsg').textContent=
     pct>=90?'Outstanding! You really know your mammals.':
     pct>=70?'Great work — solid mammal knowledge!':
@@ -360,7 +434,7 @@ function retryMissed(){
   document.getElementById('endModal').classList.remove('open');
   queue=shuffle([...missedAnimals]);
   missedAnimals=[];
-  current=0;score=0;total=0;streak=0;hintStage=0;
+  current=0;score=0;total=0;streak=0;hintStage=0;quizStartTime=Date.now();
   updateScorebar();loadAnimal();
 }
 function restartQuiz(){
@@ -372,16 +446,6 @@ document.addEventListener('keydown',e=>{
 });
 buildFilterBar();
 rebuildQueue();
-  function toggleImage() {
-  const m = queue[current];
-  const images = m.imgs || [m.img];
-  const img = document.getElementById('animalImg');
-  const toggleBtn = document.getElementById('imgToggle');
-
-  currentImgIdx = (currentImgIdx + 1) % images.length;
-  img.src = images[currentImgIdx];
-  toggleBtn.textContent = currentImgIdx === 0 ? "View Skull/Specimen" : "View Live Photo";
-}
 </script>
 </body>
 </html>
