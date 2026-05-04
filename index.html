@@ -107,12 +107,14 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--bg3);color:var(--te
   <div class="mode-info">Press <strong>Enter</strong> to submit &middot; <strong>Tab</strong> to move between fields</div>
 </div>
 
+<!-- CHANGE 1: Added "Retry missed" button to the end modal -->
 <div class="modal-bg" id="endModal">
   <div class="modal">
     <h2>Quiz complete!</h2>
     <div class="big-score" id="finalScore">—</div>
     <p id="finalMsg"></p>
-    <button class="btn btn-primary" style="width:100%" onclick="restartQuiz()">Start over</button>
+    <button class="btn btn-primary" id="retryBtn" style="width:100%;margin-bottom:8px" onclick="retryMissed()">Retry missed questions</button>
+    <button class="btn" style="width:100%" onclick="restartQuiz()">Start over (all questions)</button>
   </div>
 </div>
 
@@ -179,8 +181,10 @@ const MAMMALS=[
 ];
 
 const ORDERS=[...new Set(MAMMALS.map(m=>m.order))];
+// CHANGE 2: Added missedAnimals array to track wrong answers
 let filtered=[...MAMMALS],queue=[],current=0,score=0,total=0,streak=0,answered=false,hintStage=0;
 let activeOrders=new Set(ORDERS);
+let missedAnimals=[];
 
 function buildFilterBar(){
   const bar=document.getElementById('filterBar');
@@ -211,7 +215,8 @@ function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.ra
 function rebuildQueue(){
   filtered=MAMMALS.filter(m=>activeOrders.has(m.order));
   queue=shuffle([...filtered]);
-  current=0;score=0;total=0;streak=0;hintStage=0;
+  // CHANGE 3: Reset missedAnimals when starting a full new quiz
+  current=0;score=0;total=0;streak=0;hintStage=0;missedAnimals=[];
   updateScorebar();loadAnimal();
 }
 function loadAnimal(){
@@ -264,7 +269,8 @@ function checkAnswer(){
     else correct++;
   });
   total++;
-  if(correct===4){score++;streak++;}else{streak=0;}
+  // CHANGE 4: Push to missedAnimals if any field was wrong
+  if(correct===4){score++;streak++;}else{streak=0;missedAnimals.push(m);}
   updateScorebar();
   const box=document.getElementById('feedbackBox');
   if(correct===4){
@@ -302,7 +308,22 @@ function showEndModal(){
     pct>=70?'Great work — solid mammal knowledge!':
     pct>=50?'Good effort. Keep studying and try again!':
     'Keep at it — review your list and try again!';
+  // Show/hide retry button depending on whether anything was missed
+  const retryBtn=document.getElementById('retryBtn');
+  if(missedAnimals.length>0){
+    retryBtn.style.display='block';
+    retryBtn.textContent='Retry '+missedAnimals.length+' missed question'+(missedAnimals.length===1?'':'s');
+  }else{
+    retryBtn.style.display='none';
+  }
   document.getElementById('endModal').classList.add('open');
+}
+function retryMissed(){
+  document.getElementById('endModal').classList.remove('open');
+  queue=shuffle([...missedAnimals]);
+  missedAnimals=[];
+  current=0;score=0;total=0;streak=0;hintStage=0;
+  updateScorebar();loadAnimal();
 }
 function restartQuiz(){
   document.getElementById('endModal').classList.remove('open');
